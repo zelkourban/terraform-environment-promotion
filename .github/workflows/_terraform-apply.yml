@@ -79,13 +79,6 @@ jobs:
           TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: terraform plan -input=false -no-color -out=tfplan
 
-      - name: Retain plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-${{ inputs.environment }}-${{ github.run_id }}
-          path: envs/${{ inputs.environment }}/tfplan
-          retention-days: 30
-
       # The saved plan, not a fresh one - nothing can appear between approval
       # and apply.
       - name: terraform apply
