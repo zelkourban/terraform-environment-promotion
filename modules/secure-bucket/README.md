@@ -23,7 +23,7 @@ bucket policy.
 module "data" {
   source = "../../modules/secure-bucket"
 
-  name        = "acme-dev-data"
+  name        = "acme-dev-data-123456789012"
   environment = "dev"
   tags        = local.tags
 }
@@ -31,5 +31,4 @@ module "data" {
 
 ## Inputs / outputs
 
-See `variables.tf` and `outputs.tf`. In a real repo this section is generated
-by `terraform-docs` and checked in CI.
+See `variables.tf` and `outputs.tf`.

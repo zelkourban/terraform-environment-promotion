@@ -4,7 +4,9 @@ A single EC2 instance with no inbound access and a tightly scoped identity.
 
 ## Contract
 
-- No public IP, no SSH key, no ingress rules. Access via SSM Session Manager.
+- No SSH key and no ingress rules at all. Access via SSM Session Manager.
+- No public IP unless `assign_public_ip` is set, which makes the SSM agent
+  reachable without NAT. Ingress stays empty either way.
 - IMDSv2 required, hop limit 1.
 - Encrypted gp3 root volume.
 - An instance role granting S3 read/write on **one** bucket ARN and

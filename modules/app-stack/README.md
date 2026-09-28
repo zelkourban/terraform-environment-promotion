@@ -31,7 +31,6 @@ module "app_stack" {
   instance_type = "t3.micro"
 
   # Low-cost path for non-production: reachable SSM agent without NAT.
-  assign_public_ip   = true
-  smoke_test_on_boot = true
+  assign_public_ip = true
 }
 ```

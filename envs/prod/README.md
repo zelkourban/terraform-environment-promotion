@@ -3,8 +3,9 @@
 Additional controls that apply only here:
 
 - **Separate AWS account.** The `acme-terraform-prod-apply` role is assumable
-  only from the `prod` GitHub Environment, pinned by the OIDC `sub` claim
-  `repo:zelkourban/terraform-environment-promotion:environment:prod`.
+  only from the `prod` GitHub Environment, pinned by GitHub's immutable OIDC
+  subject claim - which carries the numeric owner and repository IDs, not just
+  their names - ending `:environment:prod`.
 - **Required reviewers** on the `prod` GitHub Environment - the deploy job
   blocks until a human approves.
 - **CODEOWNERS** marks `envs/prod/**` as warranting a second reviewer. Note

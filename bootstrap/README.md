@@ -8,7 +8,7 @@ order to run with remote state and OIDC.
 
 | Resource | Why |
 |---|---|
-| `acme-tfstate-<env>` bucket | Remote state. Versioned, SSE-KMS, TLS-only, `prevent_destroy`. |
+| `acme-tfstate-<env>-<account-id>` bucket | Remote state. Versioned, SSE-KMS, TLS-only, `prevent_destroy`. |
 | KMS key + alias | State contains resource attributes in the clear - it gets a CMK, not SSE-S3. |
 | GitHub OIDC provider | Account-scoped. Replaces long-lived access keys entirely; there is no IAM user anywhere in this design. |
 | `acme-terraform-<env>-plan` | Read-only. `ReadOnlyAccess` plus read on the state object. Runs on PRs, where the code is not yet reviewed. |
@@ -23,9 +23,14 @@ the payer account is the right place for one anyway.
 Each role's trust policy pins the OIDC `sub` claim with `StringEquals`:
 
 ```
-plan role   ← repo:<owner>/<repo>:environment:<env>-plan
-apply role  ← repo:<owner>/<repo>:environment:<env>
+plan role   ← repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<env>-plan
+apply role  ← repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<env>
 ```
+
+GitHub issues an *immutable* subject claim carrying the numeric owner and
+repository IDs alongside their names. Matching the IDs means renaming the
+repository, or deleting and recreating one with the same name, does not
+transfer trust to it.
 
 A job running in the `dev` GitHub Environment presents a token reading
 `environment:dev`. That does not match the prod role's condition, so it cannot
@@ -66,7 +71,7 @@ terraform init -migrate-state \
 rm -f terraform.tfstate terraform.tfstate.backup
 ```
 
-Lands at `s3://acme-tfstate-dev/bootstrap/terraform.tfstate` - same bucket as
+Lands at `s3://acme-tfstate-dev-<account-id>/bootstrap/terraform.tfstate` - same bucket as
 the environment state, different key. From then on this is an ordinary remote
 root: reviewable, drift-detectable, changed by PR like anything else.
 
@@ -90,10 +95,10 @@ the three accounts.
 ## After applying
 
 ```bash
-terraform output github_setup
+terraform output account_id
 ```
 
-Create these GitHub Environments and set one secret on each:
+Create these GitHub Environments and set that value as one secret on each:
 
 | Environment | Secret | Required reviewers |
 |---|---|---|
@@ -122,17 +127,17 @@ and gating them would block PR feedback behind a human.
 > On a private repo they need Pro or Team, and without them the approval gates
 > silently do not exist.
 
-Also set `AWS_ACCOUNT_ID` as a **secret** on both `<env>` and `<env>-plan`.
-The workflows use it for `TF_VAR_account_id` and to name the state bucket in
-the partial backend configuration. A secret rather than a variable so GitHub
-masks it in job logs.
-
 ## Branch protection for `main`
 
-- Require a pull request, 1+ approval, CODEOWNERS review.
-- Require status checks: `validate`, and `plan (<env>)` for each environment.
+- Require a pull request; require branches to be up to date before merging.
+- Require the `plan-gate` status check. Do **not** require the per-environment
+  `plan (<env>)` contexts: the plan matrix is empty for a PR that touches no
+  Terraform, those contexts never report, and the merge blocks forever.
 - Require linear history; disallow force pushes and deletions.
-- Include administrators.
+
+In an organisation, add 1+ approval and CODEOWNERS review. Neither is enabled
+here - see the root README for why a single-maintainer repository deadlocks on
+them.
 
 ## Teardown
 

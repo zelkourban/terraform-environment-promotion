@@ -145,13 +145,17 @@ truth for "what is where", and `terraform-drift.yml` catches the rest.
 
 ## 4. Safety controls
 
-- **Plan/apply separation.** CI applies the plan file produced in the same job
-  (`terraform plan -out=tfplan` → `terraform apply tfplan`). No re-planning
-  between approval and apply.
+- **Apply runs a saved plan**, never a fresh one: `terraform plan -out=tfplan`
+  then `terraform apply tfplan` in the same job, so the apply cannot quietly
+  do something the plan did not describe. See section 7 for what this does
+  *not* give you.
 - **Manual approval gates** on `staging` and `prod` GitHub Environments.
-- **Environment-scoped OIDC roles.** The prod IAM role's trust policy pins
-  `sub: repo:<org>/<repo>:environment:prod`, so a workflow running for dev
-  cannot assume it, even if the workflow file is edited on a branch.
+- **Environment-scoped OIDC roles.** Each role's trust policy pins GitHub's
+  immutable subject claim with `StringEquals`:
+  `repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<env>`. A job running
+  as dev cannot assume the prod role, whatever the workflow file says. Pinning
+  the numeric IDs rather than the names also means renaming or recreating the
+  repository does not transfer trust.
 - **`force_destroy = false` in prod**, hard-overridden inside `secure-bucket`
   rather than left to the caller. `terraform destroy` then fails on a
   non-empty versioned bucket. (`prevent_destroy` is not used: `lifecycle`
@@ -185,14 +189,17 @@ The `secure-bucket` module applies, by default:
 
 - All four public-access blocks enabled.
 - SSE-KMS with a customer-managed key, plus a bucket key to cut KMS cost.
-- Versioning on; prod adds MFA-delete as a manual follow-up.
+- Versioning on.
 - A bucket policy that **denies**:
   - any request where `aws:SecureTransport` is `false` (TLS only),
   - `PutObject` without `aws:kms` server-side encryption,
   - any principal outside the expected account (`aws:PrincipalAccount`).
 - `BucketOwnerEnforced` object ownership - ACLs disabled entirely.
-- Access logging to a separate log bucket.
 - Lifecycle rules to expire noncurrent versions and abort incomplete uploads.
+
+The module accepts an `access_log_bucket` input but nothing sets it - server
+access logging needs a second bucket per environment, which this stack does
+not create.
 
 The EC2 instance reaches the bucket through an **instance profile** scoped to
 that bucket's ARN and its KMS key. No credentials on disk, no SSH key - access
@@ -224,7 +231,7 @@ Each step creates what the next one needs to authenticate:
    GitHub Environments. Account IDs are deliberately not committed, and a
    *secret* rather than a *variable* so GitHub masks it in job logs.
 
-Steps 1-3 are once per account and rarely touched again. Everything after is
+Steps 1-4 are once per account and rarely touched again. Everything after is
 ordinary PR flow.
 
 ### Locally
@@ -292,13 +299,31 @@ false and supplies a private subnet.
 **Not implemented**, and where a real deployment would differ:
 
 - No VPC module - a shared network module would be consumed here.
-- `.terraform.lock.hcl` is committed per root, locked to `linux_amd64` only,
-  which is what CI runs. A team with macOS developers adds their platforms
-  with `terraform providers lock -platform=darwin_arm64`; without it, `init`
-  fails on those machines rather than silently resolving a different build.
+- No server access logging - it needs a second bucket per environment.
 - MFA-delete on the prod bucket - requires root credentials and the AWS CLI,
   not expressible in Terraform.
 - Single instance rather than a launch template and autoscaling group.
+
+`.terraform.lock.hcl` **is** committed per root, locked to `linux_amd64`
+because that is what CI runs. A team with macOS developers adds their
+platforms with `terraform providers lock -platform=darwin_arm64`; without it
+`init` fails there rather than silently resolving a different build.
+
+**The approval gate sits before the plan, not between plan and apply.** The
+canonical pattern is a plan job that hands `tfplan` to a separate, gated apply
+job, so a reviewer approves a diff they have read. That requires the plan
+artifact to be private or encrypted, because a plan embeds the state. This
+repository has to be public for GitHub Free to offer environment protection
+rules at all, and its plans contain no secrets - account IDs, ARNs and
+instance types - so the artifact handoff is not used and approval means
+"promote this commit" rather than "apply this diff". Worth revisiting if the
+stack ever grows a resource that holds a credential.
+
+**Modules are consumed by relative path**, so all three environments always
+run identical module code; only `terraform.tfvars` differs. That is deliberate
+at one stack and three environments. The point at which you would publish the
+modules and pin `?ref=v1.2.0` is when a second repository consumes them, not
+when the environment count grows.
 
 ---
 
