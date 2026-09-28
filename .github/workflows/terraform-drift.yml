@@ -1,0 +1,106 @@
+name: terraform-drift
+
+# Nightly plan against every environment. A non-empty plan means someone
+# changed infrastructure outside this repo; that opens an issue rather than
+# silently correcting itself.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+env:
+  TF_VERSION: "1.10.5"
+  AWS_REGION: eu-central-1
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, staging, prod]
+
+    environment: ${{ matrix.environment }}-plan
+
+    defaults:
+      run:
+        working-directory: envs/${{ matrix.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_PLAN_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: tf-drift-${{ matrix.environment }}-${{ github.run_id }}
+
+      - run: terraform init -input=false
+
+      - name: terraform plan -detailed-exitcode
+        id: plan
+        run: terraform plan -input=false -no-color -lock=false -detailed-exitcode
+        # 0 = no changes, 1 = error, 2 = drift detected
+        continue-on-error: true
+
+      # One issue per environment, reused until someone closes it. Opening a
+      # fresh issue every night trains people to ignore the label.
+      - name: Report drift
+        if: steps.plan.outputs.exitcode == '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const env = '${{ matrix.environment }}';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/` +
+                           `${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `Drift detected in ${env}`;
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: `drift,${env}`,
+            });
+
+            if (open.length > 0) {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: open[0].number,
+                body: `Still drifting as of ${new Date().toISOString()}. ${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                ...context.repo,
+                title,
+                labels: ['drift', env],
+                body: `\`terraform plan\` is non-empty for \`${env}\`, meaning ` +
+                      `something changed outside this repository.\n\n${runUrl}`,
+              });
+            }
+
+      - name: Close resolved drift issue
+        if: steps.plan.outputs.exitcode == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const env = '${{ matrix.environment }}';
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: `drift,${env}`,
+            });
+            for (const issue of open) {
+              await github.rest.issues.update({
+                ...context.repo, issue_number: issue.number, state: 'closed',
+              });
+            }
+
+      - name: Fail on plan error
+        if: steps.plan.outputs.exitcode == '1'
+        run: exit 1

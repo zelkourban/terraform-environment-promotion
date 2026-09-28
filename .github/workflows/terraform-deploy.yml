@@ -1,0 +1,70 @@
+name: terraform-deploy
+
+# Promotion pipeline. One run per merge to main, three sequential stages.
+#
+#   dev  ──▶  staging  ──▶  prod
+#  (auto)    (approval)   (approval)
+#
+# Each stage plans and applies in the same job, applying the plan *file* it
+# just produced — so what a reviewer approves is what gets applied.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "envs/**"
+      - "modules/**"
+      - ".github/workflows/terraform-deploy.yml"
+
+  # Escape hatch: re-run a single environment without a new commit, for a
+  # transient failure mid-chain. Prod stays in the list because "staging
+  # applied, prod timed out" is a real situation and the alternative is a
+  # local apply with no record. The environment approval gate still applies,
+  # and the reason is recorded in the run.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to apply
+        required: true
+        type: choice
+        options: [dev, staging, prod]
+      reason:
+        description: Why this is being applied out of band
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  dev:
+    if: github.event_name == 'push' || inputs.environment == 'dev'
+    uses: ./.github/workflows/_terraform-apply.yml
+    with:
+      environment: dev
+    secrets: inherit
+
+  staging:
+    needs: [dev]
+    # On dispatch the chosen environment runs on its own; on push the chain
+    # only continues if the previous stage actually succeeded.
+    if: |
+      always() &&
+      ((github.event_name == 'push' && needs.dev.result == 'success') ||
+       inputs.environment == 'staging')
+    uses: ./.github/workflows/_terraform-apply.yml
+    with:
+      environment: staging
+    secrets: inherit
+
+  prod:
+    needs: [staging]
+    if: |
+      always() &&
+      ((github.event_name == 'push' && needs.staging.result == 'success') ||
+       inputs.environment == 'prod')
+    uses: ./.github/workflows/_terraform-apply.yml
+    with:
+      environment: prod
+    secrets: inherit

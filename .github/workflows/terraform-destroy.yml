@@ -1,0 +1,100 @@
+name: terraform-destroy
+
+# Manual only, and dev/staging only.
+#
+# Prod is absent from the choice list on purpose. Tearing down production is
+# not a button — it needs a human with admin credentials, working locally,
+# after emptying a versioned bucket by hand. The friction is the control.
+#
+# Typing the environment name is required: a dropdown alone is one misclick
+# away from destroying the wrong thing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to destroy
+        required: true
+        type: choice
+        options: [dev, staging]
+      confirm:
+        description: Type the environment name exactly to confirm
+        required: true
+        type: string
+      reason:
+        description: Why this environment is being torn down
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VERSION: "1.10.5"
+  AWS_REGION: eu-central-1
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: ${{ inputs.environment }}
+
+    concurrency:
+      group: apply-${{ inputs.environment }}
+      cancel-in-progress: false
+
+    defaults:
+      run:
+        working-directory: envs/${{ inputs.environment }}
+
+    steps:
+      - name: Verify confirmation
+        if: inputs.confirm != inputs.environment
+        run: |
+          echo "Confirmation '${{ inputs.confirm }}' does not match" \
+               "'${{ inputs.environment }}'. Refusing."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: Record trigger
+        run: |
+          {
+            echo "### Destroying \`${{ inputs.environment }}\`"
+            echo ""
+            echo "- actor: @${{ github.actor }}"
+            echo "- reason: ${{ inputs.reason }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: tf-destroy-${{ inputs.environment }}-${{ github.run_id }}
+
+      - run: terraform init -input=false
+
+      - name: Plan the destroy
+        run: terraform plan -destroy -input=false -no-color -out=tfplan
+
+      - name: terraform destroy
+        run: terraform apply -input=false -no-color tfplan
+
+      # default_tags stamps Project on everything this stack creates, so
+      # anything still tagged after a destroy is an orphan worth looking at —
+      # usually the residue of a cancelled apply.
+      - name: Check for orphans
+        run: |
+          aws resourcegroupstaggingapi get-resources \
+            --tag-filters "Key=Project,Values=${{ vars.PROJECT_SLUG || 'acme' }}" \
+            --query 'ResourceTagMappingList[].ResourceARN' \
+            --output text | tee orphans.txt
+          if [ -s orphans.txt ]; then
+            echo "::warning::Tagged resources remain after destroy — see above."
+          fi

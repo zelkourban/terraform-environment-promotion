@@ -1,0 +1,329 @@
+Diagram:
+  DefinitionFiles:
+    - Type: URL
+      Url: "https://raw.githubusercontent.com/awslabs/diagram-as-code/main/definitions/definition-for-aws-icons-light.yaml"
+
+  Resources:
+    Canvas:
+      Type: AWS::Diagram::Canvas
+      Direction: vertical
+      Children:
+        - SourceStack
+        - AWSCloud
+
+    # ----------------------------------------------------------------
+    # Source and CI
+    # ----------------------------------------------------------------
+    SourceStack:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - Developer
+        - Repository
+        - Pipeline
+
+    Developer:
+      Type: AWS::Diagram::Resource
+      Preset: User
+      Title: "Developer"
+
+    Repository:
+      Type: AWS::Diagram::Resource
+      Preset: "Git repository"
+      Title: "GitHub repo"
+
+    Pipeline:
+      Type: AWS::Diagram::Resource
+      Preset: "Pipeline"
+      Title: "GitHub Actions"
+
+    # ----------------------------------------------------------------
+    # AWS Organization
+    # ----------------------------------------------------------------
+    AWSCloud:
+      Type: AWS::Diagram::Cloud
+      Direction: vertical
+      Preset: AWSCloudNoLogo
+      Align: center
+      Children:
+        - Organization
+
+    Organization:
+      Type: AWS::Organizations::Organization
+      Direction: vertical
+      Title: "AWS Organization"
+      Children:
+        - AccountStack
+
+    AccountStack:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - DevAccount
+        - StagingAccount
+        - ProdAccount
+
+    # ----------------------------------------------------------------
+    # dev
+    # ----------------------------------------------------------------
+    DevAccount:
+      Type: AWS::Organizations::Account
+      Direction: vertical
+      Title: "dev account"
+      Children:
+        - DevRegion
+
+    DevRegion:
+      Type: AWS::Region
+      Direction: vertical
+      Title: "eu-central-1"
+      Children:
+        - DevRoles
+        - DevState
+        - DevVPC
+        - DevData
+
+    DevRoles:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - DevPlanRole
+        - DevApplyRole
+
+    DevPlanRole:
+      Type: AWS::IAM::Role
+      Title: "plan (read-only)"
+
+    DevApplyRole:
+      Type: AWS::IAM::Role
+      Title: "apply"
+
+    DevState:
+      Type: AWS::S3::Bucket
+      Title: "tfstate"
+
+    DevVPC:
+      Type: AWS::EC2::VPC
+      Direction: vertical
+      Children:
+        - DevSubnet
+
+    DevSubnet:
+      Type: AWS::EC2::Subnet
+      Preset: PublicSubnet
+      Children:
+        - DevInstance
+
+    DevInstance:
+      Type: AWS::EC2::Instance
+      Title: "t3.micro"
+
+    DevData:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - DevBucket
+        - DevKey
+
+    DevBucket:
+      Type: AWS::S3::Bucket
+      Title: "data (SSE-KMS)"
+
+    DevKey:
+      Type: AWS::KMS
+      Title: "CMK"
+
+    # ----------------------------------------------------------------
+    # staging
+    # ----------------------------------------------------------------
+    StagingAccount:
+      Type: AWS::Organizations::Account
+      Direction: vertical
+      Title: "staging account"
+      Children:
+        - StagingRegion
+
+    StagingRegion:
+      Type: AWS::Region
+      Direction: vertical
+      Title: "eu-central-1"
+      Children:
+        - StagingRoles
+        - StagingState
+        - StagingVPC
+        - StagingData
+
+    StagingRoles:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - StagingPlanRole
+        - StagingApplyRole
+
+    StagingPlanRole:
+      Type: AWS::IAM::Role
+      Title: "plan (read-only)"
+
+    StagingApplyRole:
+      Type: AWS::IAM::Role
+      Title: "apply"
+
+    StagingState:
+      Type: AWS::S3::Bucket
+      Title: "tfstate"
+
+    StagingVPC:
+      Type: AWS::EC2::VPC
+      Direction: vertical
+      Children:
+        - StagingSubnet
+
+    StagingSubnet:
+      Type: AWS::EC2::Subnet
+      Preset: PublicSubnet
+      Children:
+        - StagingInstance
+
+    StagingInstance:
+      Type: AWS::EC2::Instance
+      Title: "t3.small"
+
+    StagingData:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - StagingBucket
+        - StagingKey
+
+    StagingBucket:
+      Type: AWS::S3::Bucket
+      Title: "data (SSE-KMS)"
+
+    StagingKey:
+      Type: AWS::KMS
+      Title: "CMK"
+
+    # ----------------------------------------------------------------
+    # prod
+    # ----------------------------------------------------------------
+    ProdAccount:
+      Type: AWS::Organizations::Account
+      Direction: vertical
+      Title: "prod account"
+      Children:
+        - ProdRegion
+
+    ProdRegion:
+      Type: AWS::Region
+      Direction: vertical
+      Title: "eu-central-1"
+      Children:
+        - ProdRoles
+        - ProdState
+        - ProdVPC
+        - ProdData
+
+    ProdRoles:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - ProdPlanRole
+        - ProdApplyRole
+
+    ProdPlanRole:
+      Type: AWS::IAM::Role
+      Title: "plan (read-only)"
+
+    ProdApplyRole:
+      Type: AWS::IAM::Role
+      Title: "apply"
+
+    ProdState:
+      Type: AWS::S3::Bucket
+      Title: "tfstate"
+
+    ProdVPC:
+      Type: AWS::EC2::VPC
+      Direction: vertical
+      Children:
+        - ProdSubnet
+
+    ProdSubnet:
+      Type: AWS::EC2::Subnet
+      Preset: PrivateSubnet
+      Children:
+        - ProdInstance
+
+    ProdInstance:
+      Type: AWS::EC2::Instance
+      Title: "t3.small"
+
+    ProdData:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - ProdBucket
+        - ProdKey
+
+    ProdBucket:
+      Type: AWS::S3::Bucket
+      Title: "data (SSE-KMS)"
+
+    ProdKey:
+      Type: AWS::KMS
+      Title: "CMK"
+
+  Links:
+    - Source: Developer
+      SourcePosition: E
+      Target: Repository
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: Repository
+      SourcePosition: E
+      Target: Pipeline
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    # OIDC: one federated assume-role per environment, sub-pinned.
+    - Source: Pipeline
+      SourcePosition: S
+      Target: DevApplyRole
+      TargetPosition: N
+      TargetArrowHead:
+        Type: Open
+
+    - Source: Pipeline
+      SourcePosition: S
+      Target: StagingApplyRole
+      TargetPosition: N
+      TargetArrowHead:
+        Type: Open
+
+    - Source: Pipeline
+      SourcePosition: S
+      Target: ProdApplyRole
+      TargetPosition: N
+      TargetArrowHead:
+        Type: Open
+
+    # Promotion order is shown in docs/pipeline.png — drawing it here as
+    # account-to-account arrows renders as unreadable stubs between adjacent
+    # boxes.
+
+    # Instance reaches its bucket through the instance profile only.
+    - Source: DevInstance
+      SourcePosition: S
+      Target: DevBucket
+      TargetPosition: N
+      TargetArrowHead:
+        Type: Open
+
+    - Source: StagingInstance
+      SourcePosition: S
+      Target: StagingBucket
+      TargetPosition: N
+      TargetArrowHead:
+        Type: Open
+
+    - Source: ProdInstance
+      SourcePosition: S
+      Target: ProdBucket
+      TargetPosition: N
+      TargetArrowHead:
+        Type: Open

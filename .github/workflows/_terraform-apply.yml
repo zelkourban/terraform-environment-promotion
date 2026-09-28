@@ -1,0 +1,87 @@
+name: _terraform-apply
+
+# Reusable apply job. Not triggerable directly — called by terraform-deploy.yml
+# so the three promotion stages cannot drift apart.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VERSION: "1.10.5"
+  AWS_REGION: eu-central-1
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    # Approval gate and credentials both hang off this. The role ARN comes
+    # from the GitHub Environment, so the workflow file itself never names a
+    # production role.
+    environment:
+      name: ${{ inputs.environment }}
+
+    # Two applies must never touch one state file concurrently.
+    concurrency:
+      group: apply-${{ inputs.environment }}
+      cancel-in-progress: false
+
+    defaults:
+      run:
+        working-directory: envs/${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record trigger
+        run: |
+          {
+            echo "### Applying \`${{ inputs.environment }}\`"
+            echo ""
+            echo "- commit: \`${{ github.sha }}\`"
+            echo "- actor: @${{ github.actor }}"
+            echo "- trigger: ${{ github.event_name }}"
+            if [ -n "${{ github.event.inputs.reason }}" ]; then
+              echo "- out-of-band reason: ${{ github.event.inputs.reason }}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: tf-apply-${{ inputs.environment }}-${{ github.run_id }}
+
+      - name: Verify target account
+        run: aws sts get-caller-identity
+
+      - run: terraform init -input=false
+
+      - name: terraform plan
+        run: terraform plan -input=false -no-color -out=tfplan
+
+      - name: Retain plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}-${{ github.run_id }}
+          path: envs/${{ inputs.environment }}/tfplan
+          retention-days: 30
+
+      # Applies the saved plan, not a fresh one: nothing that appeared between
+      # approval and apply can sneak in.
+      - name: terraform apply
+        run: terraform apply -input=false -no-color tfplan
+
+      - name: Outputs
+        run: terraform output -no-color

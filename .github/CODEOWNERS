@@ -1,0 +1,19 @@
+# In an organisation these would be team handles (@org/platform,
+# @org/platform-leads, @org/security) with different groups owning different
+# paths. This repository has a single maintainer, so the paths below record
+# *which* areas warrant a second pair of eyes rather than enforcing who.
+#
+# Required-approvals is deliberately not enabled in branch protection: GitHub
+# does not let an author approve their own pull request, and a single-
+# maintainer repository would deadlock on every change.
+
+*                       @zelkourban
+
+# Shared modules change all three environments at once.
+/modules/               @zelkourban
+
+# Production configuration and the pipelines themselves are the two places
+# where a mistake is expensive and hard to undo.
+/envs/prod/             @zelkourban
+/.github/workflows/     @zelkourban
+/bootstrap/             @zelkourban
