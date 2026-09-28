@@ -8,16 +8,22 @@ terraform {
     }
   }
 
-  # No backend block on purpose.
+  # Partial backend configuration - every value comes from backends/<env>.hcl
+  # and the -backend-config flag, because the bucket name embeds the account
+  # ID and is not committed.
   #
-  # This layer creates the bucket every other layer stores state in, so the
-  # first run is necessarily local. Immediately afterwards the state is moved
-  # into the bucket it just created:
+  # This layer creates the bucket it stores state in, so the first run has to
+  # skip the backend entirely and then migrate:
   #
-  #   terraform init -migrate-state -backend-config=backends/<env>.hcl
+  #   terraform init -backend=false
+  #   terraform apply -var-file=<env>.tfvars
+  #   terraform init -migrate-state \
+  #     -backend-config=backends/<env>.hcl \
+  #     -backend-config="bucket=acme-tfstate-<env>-$TF_VAR_account_id"
   #
   # From then on this is an ordinary remote-state root: reviewable, drift-
   # detectable, and not dependent on one person's laptop.
+  backend "s3" {}
 }
 
 provider "aws" {

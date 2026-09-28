@@ -44,15 +44,3 @@ variable "create_oidc_provider" {
   type        = bool
   default     = true
 }
-
-variable "monthly_budget_usd" {
-  description = "Monthly cost budget. An alert is emailed at 80% and 100%. Null disables the budget."
-  type        = number
-  default     = 5
-}
-
-variable "budget_notification_email" {
-  description = "Address that receives budget alerts."
-  type        = string
-  default     = null
-}

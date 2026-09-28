@@ -23,9 +23,9 @@ jobs:
   apply:
     runs-on: ubuntu-latest
 
-    # Approval gate and credentials both hang off this. The role ARN comes
-    # from the GitHub Environment, so the workflow file itself never names a
-    # production role.
+    # Approval gate and credentials both hang off this. The role ARN is built
+    # from the environment's AWS_ACCOUNT_ID secret, so the workflow file never
+    # names a production account.
     environment:
       name: ${{ inputs.environment }}
 
@@ -60,7 +60,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.PROJECT }}-terraform-${{ inputs.environment }}-apply
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: tf-apply-${{ inputs.environment }}-${{ github.run_id }}
 

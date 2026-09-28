@@ -1,24 +1,12 @@
-# A cheap backstop for the thing you forgot to destroy. Two budgets per
-# account are free.
-
-resource "aws_budgets_budget" "monthly" {
-  count = var.monthly_budget_usd == null ? 0 : 1
-
-  name         = "${var.project}-${var.environment}-monthly"
-  budget_type  = "COST"
-  limit_amount = tostring(var.monthly_budget_usd)
-  limit_unit   = "USD"
-  time_unit    = "MONTHLY"
-
-  dynamic "notification" {
-    for_each = var.budget_notification_email == null ? [] : [80, 100]
-
-    content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_email_addresses = [var.budget_notification_email]
-    }
-  }
-}
+# No budget here on purpose.
+#
+# Member accounts are created with --iam-user-access-to-billing DENY, so no
+# principal inside them can read billing data and CreateBudget is refused:
+#
+#   AccessDeniedException: Account ... is a linked account. To enable budgets
+#   for your account, ask the payer account to enable budgets first.
+#
+# That setting is worth keeping - workload accounts should not expose billing
+# to their own roles. Under consolidated billing every member charge lands on
+# the management account anyway, so a single budget there covers all three
+# environments and is the correct place for it. See bootstrap/README.md.

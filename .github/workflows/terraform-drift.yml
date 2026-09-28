@@ -43,7 +43,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.TF_PLAN_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.PROJECT }}-terraform-${{ matrix.environment }}-plan
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: tf-drift-${{ matrix.environment }}-${{ github.run_id }}
 

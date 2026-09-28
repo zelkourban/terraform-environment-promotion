@@ -49,9 +49,13 @@ cd bootstrap
 export TF_VAR_account_id=<dev account id>
 export TF_VAR_budget_notification_email=<address for budget alerts>
 
-# 1. First run, local state
+# 1. First run: shadow the S3 backend with a local one, since the bucket
+#    this layer is about to create does not exist yet. *_override.tf is
+#    gitignored and merges over the backend block in versions.tf.
+printf 'terraform {\n  backend "local" {}\n}\n' > backend_override.tf
 terraform init
 terraform apply -var-file=dev.tfvars
+rm backend_override.tf
 
 # 2. Move state into the bucket it just created
 terraform init -migrate-state \
@@ -87,17 +91,27 @@ the three accounts.
 terraform output github_setup
 ```
 
-Create these GitHub Environments in the repository and set the variable on
-each:
+Create these GitHub Environments and set one secret on each:
 
-| Environment | Variable | Required reviewers |
+| Environment | Secret | Required reviewers |
 |---|---|---|
-| `dev-plan` | `TF_PLAN_ROLE_ARN` | no |
-| `dev` | `TF_APPLY_ROLE_ARN` | no |
-| `staging-plan` | `TF_PLAN_ROLE_ARN` | no |
-| `staging` | `TF_APPLY_ROLE_ARN` | **yes** |
-| `prod-plan` | `TF_PLAN_ROLE_ARN` | no |
-| `prod` | `TF_APPLY_ROLE_ARN` | **yes** |
+| `dev-plan` | `AWS_ACCOUNT_ID` | no |
+| `dev` | `AWS_ACCOUNT_ID` | no |
+| `staging-plan` | `AWS_ACCOUNT_ID` | no |
+| `staging` | `AWS_ACCOUNT_ID` | **yes** |
+| `prod-plan` | `AWS_ACCOUNT_ID` | no |
+| `prod` | `AWS_ACCOUNT_ID` | **yes** |
+
+The role ARNs are not stored anywhere. Workflows build them from the account
+ID and the environment name:
+
+```
+arn:aws:iam::$AWS_ACCOUNT_ID:role/acme-terraform-<env>-{plan,apply}
+```
+
+A secret rather than a variable because GitHub prints step inputs in job
+logs - a variable would put the account ID straight into a public log, while
+a secret is masked wherever it appears, including inside an ARN.
 
 The `*-plan` environments are deliberately unprotected - they are read-only,
 and gating them would block PR feedback behind a human.

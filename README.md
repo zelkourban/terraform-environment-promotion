@@ -245,7 +245,8 @@ CloudTrail.
 
 Six GitHub Environments back this: `<env>` (apply role, reviewers on staging
 and prod) and `<env>-plan` (read-only role, no reviewers, so PR feedback is
-never blocked). Setup is described in `bootstrap/README.md`.
+never blocked). Each carries a single `AWS_ACCOUNT_ID` secret; the role ARNs
+are derived from it rather than stored. Setup is in `bootstrap/README.md`.
 
 ---
 

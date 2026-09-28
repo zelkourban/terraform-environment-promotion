@@ -25,13 +25,18 @@ locals {
 resource "aws_iam_openid_connect_provider" "github" {
   count = var.create_oidc_provider ? 1 : 0
 
-  url             = "https://${local.oidc_issuer}"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://${local.oidc_issuer}"
+  client_id_list = ["sts.amazonaws.com"]
+
+  # AWS no longer validates the certificate thumbprint for well-known IdPs -
+  # it populates and rotates one itself. Declaring an empty list and then
+  # ignoring it means Terraform neither pins a value that will expire nor
+  # reports drift every time AWS rotates it.
   thumbprint_list = []
 
-  # thumbprint_list is intentionally empty: AWS no longer validates the
-  # certificate thumbprint for well-known IdPs and rotates it internally.
-  # Pinning one just creates a future outage when GitHub rotates its cert.
+  lifecycle {
+    ignore_changes = [thumbprint_list]
+  }
 }
 
 # --------------------------------------------------------------------------

@@ -75,7 +75,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.PROJECT }}-terraform-${{ inputs.environment }}-apply
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: tf-destroy-${{ inputs.environment }}-${{ github.run_id }}
 
@@ -102,7 +102,7 @@ jobs:
       - name: Check for orphans
         run: |
           aws resourcegroupstaggingapi get-resources \
-            --tag-filters "Key=Project,Values=${{ vars.PROJECT_SLUG || 'acme' }}" \
+            --tag-filters "Key=Project,Values=${PROJECT}" \
             --query 'ResourceTagMappingList[].ResourceARN' \
             --output text | tee orphans.txt
           if [ -s orphans.txt ]; then
