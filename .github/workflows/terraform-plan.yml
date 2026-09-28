@@ -24,6 +24,7 @@ concurrency:
 env:
   TF_VERSION: "1.10.5"
   AWS_REGION: eu-central-1
+  PROJECT: acme
 
 jobs:
   # ------------------------------------------------------------------
@@ -135,17 +136,32 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: tf-plan-${{ matrix.environment }}-${{ github.run_id }}
 
-      - run: terraform init -input=false
+      - name: terraform init
+        env:
+          ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${PROJECT}-tfstate-${{ matrix.environment }}-${ACCOUNT_ID}"
 
       - name: terraform validate
         run: terraform validate -no-color
 
       - name: terraform plan
         id: plan
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: |
           terraform plan -input=false -no-color -lock=false \
             -out=tfplan | tee plan.txt
         continue-on-error: true
+
+      # GitHub masks secrets in job logs, but not in content we post through
+      # the API. The plan is full of ARNs and bucket names carrying the
+      # account ID, so scrub it before it reaches a public pull request.
+      - name: Redact account ID from plan
+        env:
+          ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: sed -i "s/${ACCOUNT_ID}/ACCOUNT_ID_REDACTED/g" plan.txt
 
       - name: Comment plan on PR
         uses: actions/github-script@v7

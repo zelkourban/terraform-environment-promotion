@@ -33,6 +33,7 @@ permissions:
 env:
   TF_VERSION: "1.10.5"
   AWS_REGION: eu-central-1
+  PROJECT: acme
 
 jobs:
   destroy:
@@ -78,12 +79,21 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: tf-destroy-${{ inputs.environment }}-${{ github.run_id }}
 
-      - run: terraform init -input=false
+      - name: terraform init
+        env:
+          ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${PROJECT}-tfstate-${{ inputs.environment }}-${ACCOUNT_ID}"
 
       - name: Plan the destroy
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: terraform plan -destroy -input=false -no-color -out=tfplan
 
       - name: terraform destroy
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: terraform apply -input=false -no-color tfplan
 
       # default_tags stamps Project on everything this stack creates, so

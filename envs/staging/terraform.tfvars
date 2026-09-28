@@ -1,7 +1,8 @@
 project     = "acme"
 environment = "staging"
 region      = "eu-central-1"
-account_id  = "FILL_ME" # from `terraform -chdir=bootstrap output account_id`
+
+# account_id comes from TF_VAR_account_id - see README.
 
 # Staging mirrors prod's shape at a smaller size, so a plan that is clean here
 # is a meaningful signal for prod.

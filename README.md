@@ -75,6 +75,7 @@ values in.
 | State | Separate S3 backend key per env: `env/<env>/terraform.tfstate`, in a separate state bucket per account. Locking via S3 conditional writes (`use_lockfile`). |
 | Credentials | GitHub OIDC → one IAM role per environment. No long-lived access keys. The dev role cannot touch prod. |
 | Config | `envs/<env>/terraform.tfvars`, auto-loaded. No shared mutable globals. |
+| Account IDs | Never committed. Supplied as `TF_VAR_account_id`, from a per-environment GitHub secret in CI or an exported variable locally. The same value names the state bucket, which is why the backend is a partial configuration. |
 | Naming | Every resource is prefixed `${var.project}-${var.environment}-...` and tagged via `default_tags`. |
 | Blast radius | Prod lives in its own AWS account; the prod role is only assumable by the `prod` GitHub Environment. |
 
@@ -152,6 +153,10 @@ truth for "what is where", and `terraform-drift.yml` catches the rest.
 - **Concurrency groups** per environment so two applies can never race the
   same state.
 - **Drift detection** on a schedule; a non-empty plan opens an issue.
+- **Account IDs are not in the repository.** They arrive as per-environment
+  secrets. GitHub masks secrets in job logs but not in content posted through
+  the API, so the plan workflow additionally scrubs the ID out of the plan
+  text before commenting it on a public pull request.
 
 ---
 
@@ -196,24 +201,31 @@ Each step creates what the next one needs to authenticate:
 3. **GitHub Environments.** Six of them, role ARNs from step 2's output,
    required reviewers on `staging` and `prod`. Note that environment
    protection rules need a public repo on GitHub Free.
-4. **`envs/*/terraform.tfvars`** - fill in `account_id` from step 2.
+4. **Per-environment secret.** Set `AWS_ACCOUNT_ID` on each of the six
+   GitHub Environments. Account IDs are deliberately not committed, and a
+   *secret* rather than a *variable* so GitHub masks it in job logs.
 
 Steps 1-3 are once per account and rarely touched again. Everything after is
 ordinary PR flow.
 
 ### Locally
 
+The account ID is not in the repository, so export it first - it both guards
+the provider and names the state bucket:
+
 ```bash
+export TF_VAR_account_id=<account id for the environment>
+
 make init  ENV=dev
 make plan  ENV=dev
 make apply ENV=dev     # dev only; staging/prod go through CI
 ```
 
-or directly:
+or directly, passing the bucket to the partial backend:
 
 ```bash
 cd envs/dev
-terraform init
+terraform init -backend-config="bucket=acme-tfstate-dev-$TF_VAR_account_id"
 terraform plan
 ```
 

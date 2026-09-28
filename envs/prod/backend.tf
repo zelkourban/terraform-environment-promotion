@@ -1,8 +1,12 @@
 terraform {
+  # Partial backend configuration: the bucket name embeds the AWS account ID,
+  # which is deliberately not committed. It is supplied at init time:
+  #
+  #   terraform init -backend-config="bucket=acme-tfstate-prod-$AWS_ACCOUNT_ID"
+  #
   # State lives in the same account as the resources it describes, so a
-  # compromised lower-environment pipeline cannot reach prod state.
+  # compromised lower-environment pipeline cannot reach another's state.
   backend "s3" {
-    bucket       = "acme-tfstate-prod-ACCOUNT_ID" # from `terraform -chdir=bootstrap output state_bucket`
     key          = "env/prod/terraform.tfstate"
     region       = "eu-central-1"
     encrypt      = true

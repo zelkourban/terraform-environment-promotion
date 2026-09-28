@@ -1,7 +1,8 @@
 project     = "acme"
 environment = "dev"
 region      = "eu-central-1"
-account_id  = "FILL_ME" # from `terraform -chdir=bootstrap output account_id`
+
+# account_id comes from TF_VAR_account_id - see README.
 
 instance_type    = "t3.micro"
 root_volume_size = 20

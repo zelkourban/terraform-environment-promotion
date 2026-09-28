@@ -44,15 +44,19 @@ run has nowhere remote to put its own state. It does not stay that way.
 ```bash
 cd bootstrap
 
-# 1. Fill in the account ID and repository
-$EDITOR dev.tfvars
+# The account ID is never committed - it is an input, and it names the
+# bucket this layer is about to create.
+export TF_VAR_account_id=<dev account id>
+export TF_VAR_budget_notification_email=<address for budget alerts>
 
-# 2. First run, local state
+# 1. First run, local state
 terraform init
 terraform apply -var-file=dev.tfvars
 
-# 3. Move state into the bucket it just created
-terraform init -migrate-state -backend-config=backends/dev.hcl
+# 2. Move state into the bucket it just created
+terraform init -migrate-state \
+  -backend-config=backends/dev.hcl \
+  -backend-config="bucket=acme-tfstate-dev-$TF_VAR_account_id"
 rm -f terraform.tfstate terraform.tfstate.backup
 ```
 
@@ -102,7 +106,10 @@ and gating them would block PR feedback behind a human.
 > On a private repo they need Pro or Team, and without them the approval gates
 > silently do not exist.
 
-Then copy `account_id` into the matching `envs/<env>/terraform.tfvars`.
+Also set `AWS_ACCOUNT_ID` as a **secret** on both `<env>` and `<env>-plan`.
+The workflows use it for `TF_VAR_account_id` and to name the state bucket in
+the partial backend configuration. A secret rather than a variable so GitHub
+masks it in job logs.
 
 ## Branch protection for `main`
 

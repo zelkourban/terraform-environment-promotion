@@ -17,6 +17,7 @@ permissions:
 env:
   TF_VERSION: "1.10.5"
   AWS_REGION: eu-central-1
+  PROJECT: acme
 
 jobs:
   drift:
@@ -46,10 +47,17 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: tf-drift-${{ matrix.environment }}-${{ github.run_id }}
 
-      - run: terraform init -input=false
+      - name: terraform init
+        env:
+          ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${PROJECT}-tfstate-${{ matrix.environment }}-${ACCOUNT_ID}"
 
       - name: terraform plan -detailed-exitcode
         id: plan
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: terraform plan -input=false -no-color -lock=false -detailed-exitcode
         # 0 = no changes, 1 = error, 2 = drift detected
         continue-on-error: true

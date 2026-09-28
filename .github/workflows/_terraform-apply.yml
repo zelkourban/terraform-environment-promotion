@@ -17,6 +17,7 @@ permissions:
 env:
   TF_VERSION: "1.10.5"
   AWS_REGION: eu-central-1
+  PROJECT: acme
 
 jobs:
   apply:
@@ -66,9 +67,18 @@ jobs:
       - name: Verify target account
         run: aws sts get-caller-identity
 
-      - run: terraform init -input=false
+      # The account ID is not committed. It arrives as an environment secret,
+      # which also names the state bucket.
+      - name: terraform init
+        env:
+          ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${PROJECT}-tfstate-${{ inputs.environment }}-${ACCOUNT_ID}"
 
       - name: terraform plan
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: terraform plan -input=false -no-color -out=tfplan
 
       - name: Retain plan
@@ -81,6 +91,8 @@ jobs:
       # Applies the saved plan, not a fresh one: nothing that appeared between
       # approval and apply can sneak in.
       - name: terraform apply
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: terraform apply -input=false -no-color tfplan
 
       - name: Outputs
