@@ -40,7 +40,7 @@ variable "assign_public_ip" {
     Assign a public IP so the SSM agent can reach Systems Manager over an
     internet gateway, instead of requiring NAT or SSM interface endpoints.
 
-    The security group has no ingress rules either way — this changes
+    The security group has no ingress rules either way - this changes
     reachability of the agent, not exposure of the instance.
   EOT
   type        = bool

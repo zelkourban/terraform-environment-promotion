@@ -1,17 +1,16 @@
 name: terraform-plan
 
-# Runs on every PR to main. Produces a plan for each environment whose files
-# the PR touches, plus the shared modules (a module change affects all three).
-# Never applies anything — the role it assumes is read-only.
-
+# Plans each environment whose files the PR touches, plus all three when a
+# shared module changes. Never applies anything - the role it assumes is
+# read-only.
+#
+# The workflow starts on every PR, not just Terraform ones: branch protection
+# requires the `plan-gate` context, and a required check that never reports
+# blocks the merge permanently. Which environments actually get planned is
+# decided by the `changes` job below.
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "envs/**"
-      - "modules/**"
-      - ".github/workflows/terraform-*.yml"
-      - ".github/workflows/_terraform-apply.yml"
 
 permissions:
   contents: read
@@ -28,7 +27,7 @@ env:
 
 jobs:
   # ------------------------------------------------------------------
-  # Static checks run once for the whole repo — cheap, fail fast.
+  # Static checks run once for the whole repo - cheap, fail fast.
   # ------------------------------------------------------------------
   validate:
     runs-on: ubuntu-latest
@@ -90,7 +89,7 @@ jobs:
           set -euo pipefail
 
           # A module or workflow change lands in all three environments, so it
-          # has to be planned against all three — a diff that is clean in dev
+          # has to be planned against all three - a diff that is clean in dev
           # can still be destructive in prod.
           if [ "$SHARED" = "true" ]; then
             envs='["dev","staging","prod"]'
@@ -157,12 +156,12 @@ jobs:
             let plan = fs.readFileSync('envs/' + env + '/plan.txt', 'utf8');
             const MAX = 60000;
             if (plan.length > MAX) {
-              plan = plan.slice(0, MAX) + '\n… truncated, see the job log.';
+              plan = plan.slice(0, MAX) + '\n... truncated, see the job log.';
             }
             const marker = `<!-- tf-plan:${env} -->`;
             const body = [
               marker,
-              `### Terraform plan — \`${env}\``,
+              `### Terraform plan - \`${env}\``,
               '',
               '<details><summary>Show plan</summary>',
               '',
@@ -191,3 +190,31 @@ jobs:
       - name: Fail if plan failed
         if: steps.plan.outcome == 'failure'
         run: exit 1
+
+  # ------------------------------------------------------------------
+  # Single always-reporting context for branch protection.
+  #
+  # `plan` is a matrix that may be empty (a docs-only PR plans nothing), and
+  # matrix jobs produce one context per entry - so `plan (dev)` cannot be
+  # required directly without deadlocking PRs that do not touch dev.
+  # ------------------------------------------------------------------
+  plan-gate:
+    needs: [validate, changes, plan]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check upstream results
+        run: |
+          echo "validate: ${{ needs.validate.result }}"
+          echo "changes:  ${{ needs.changes.result }}"
+          echo "plan:     ${{ needs.plan.result }}"
+
+          # 'skipped' is a pass: it means this PR touched no Terraform.
+          for r in "${{ needs.validate.result }}" \
+                   "${{ needs.changes.result }}" \
+                   "${{ needs.plan.result }}"; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::upstream job result: $r"; exit 1 ;;
+            esac
+          done

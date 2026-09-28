@@ -21,7 +21,7 @@ resource "aws_kms_key" "this" {
 }
 
 data "aws_iam_policy_document" "key" {
-  # Delegate to IAM. Without this statement the key is orphaned — key policies
+  # Delegate to IAM. Without this statement the key is orphaned - key policies
   # are not additive with IAM, and a key nobody is named in cannot be used or
   # even deleted without AWS support.
   statement {
@@ -95,7 +95,7 @@ resource "aws_s3_bucket" "this" {
   # bucket) plus the CODEOWNERS rule on envs/prod.
 }
 
-# ACLs disabled entirely — ownership is the only access mechanism.
+# ACLs disabled entirely - ownership is the only access mechanism.
 resource "aws_s3_bucket_ownership_controls" "this" {
   bucket = aws_s3_bucket.this.id
 
@@ -169,7 +169,7 @@ resource "aws_s3_bucket_logging" "this" {
 }
 
 # --------------------------------------------------------------------------
-# Bucket policy — deny-by-default hardening
+# Bucket policy - deny-by-default hardening
 # --------------------------------------------------------------------------
 data "aws_iam_policy_document" "bucket" {
   # Reject anything not over TLS.
@@ -237,7 +237,7 @@ data "aws_iam_policy_document" "bucket" {
     }
   }
 
-  # No Allow statements. Access is granted identity-side — the instance
+  # No Allow statements. Access is granted identity-side - the instance
   # profile in modules/compute names this bucket's ARN and key ARN. Keeping
   # grants in exactly one place means "who can read this bucket" has one
   # answer, not two that can disagree.

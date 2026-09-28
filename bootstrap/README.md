@@ -9,7 +9,7 @@ order to run with remote state and OIDC.
 | Resource | Why |
 |---|---|
 | `acme-tfstate-<env>` bucket | Remote state. Versioned, SSE-KMS, TLS-only, `prevent_destroy`. |
-| KMS key + alias | State contains resource attributes in the clear — it gets a CMK, not SSE-S3. |
+| KMS key + alias | State contains resource attributes in the clear - it gets a CMK, not SSE-S3. |
 | GitHub OIDC provider | Account-scoped. Replaces long-lived access keys entirely; there is no IAM user anywhere in this design. |
 | `acme-terraform-<env>-plan` | Read-only. `ReadOnlyAccess` plus read on the state object. Runs on PRs, where the code is not yet reviewed. |
 | `acme-terraform-<env>-apply` | Scoped writes: EC2, S3 under the project prefix, KMS, and IAM confined to `acme-<env>-*`. Explicitly **not** `AdministratorAccess`. |
@@ -26,11 +26,11 @@ apply role  ← repo:<owner>/<repo>:environment:<env>
 
 A job running in the `dev` GitHub Environment presents a token reading
 `environment:dev`. That does not match the prod role's condition, so it cannot
-assume it — regardless of what the workflow file says or who edited it. This
+assume it - regardless of what the workflow file says or who edited it. This
 is the load-bearing control in the repository; approval gates are the visible
 part, this is the part that holds.
 
-`StringEquals`, never `StringLike` — a wildcard here would let any environment
+`StringEquals`, never `StringLike` - a wildcard here would let any environment
 assume any role, which is the single most common OIDC misconfiguration.
 
 The apply role also carries an explicit `Deny` on its own role, the plan role
@@ -56,7 +56,7 @@ terraform init -migrate-state -backend-config=backends/dev.hcl
 rm -f terraform.tfstate terraform.tfstate.backup
 ```
 
-Lands at `s3://acme-tfstate-dev/bootstrap/terraform.tfstate` — same bucket as
+Lands at `s3://acme-tfstate-dev/bootstrap/terraform.tfstate` - same bucket as
 the environment state, different key. From then on this is an ordinary remote
 root: reviewable, drift-detectable, changed by PR like anything else.
 
@@ -95,7 +95,7 @@ each:
 | `prod-plan` | `TF_PLAN_ROLE_ARN` | no |
 | `prod` | `TF_APPLY_ROLE_ARN` | **yes** |
 
-The `*-plan` environments are deliberately unprotected — they are read-only,
+The `*-plan` environments are deliberately unprotected - they are read-only,
 and gating them would block PR feedback behind a human.
 
 > Environment protection rules require a public repository on GitHub Free.
@@ -114,4 +114,4 @@ Then copy `account_id` into the matching `envs/<env>/terraform.tfvars`.
 ## Teardown
 
 Don't. The bucket holds every environment's state and costs pennies; the roles
-and OIDC provider are free. Tear down `envs/*` instead — see the root README.
+and OIDC provider are free. Tear down `envs/*` instead - see the root README.

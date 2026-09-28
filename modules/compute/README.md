@@ -8,7 +8,7 @@ A single EC2 instance with no inbound access and a tightly scoped identity.
 - IMDSv2 required, hop limit 1.
 - Encrypted gp3 root volume.
 - An instance role granting S3 read/write on **one** bucket ARN and
-  `kms:Decrypt`/`GenerateDataKey` on **one** key ARN — nothing else.
+  `kms:Decrypt`/`GenerateDataKey` on **one** key ARN - nothing else.
 - `ignore_changes = [ami]` so an upstream AMI release does not silently queue
   an instance replacement.
 

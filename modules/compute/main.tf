@@ -89,7 +89,7 @@ resource "aws_security_group" "this" {
   vpc_id      = var.vpc_id
   tags        = var.tags
 
-  # No ingress rules by design — SSM initiates outbound connections.
+  # No ingress rules by design - SSM initiates outbound connections.
 }
 
 resource "aws_vpc_security_group_egress_rule" "https" {
@@ -114,7 +114,7 @@ resource "aws_instance" "this" {
   associate_public_ip_address = var.assign_public_ip
   monitoring                  = var.environment == "prod"
 
-  # IMDSv2 only — blocks the SSRF-to-credential-theft path.
+  # IMDSv2 only - blocks the SSRF-to-credential-theft path.
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"

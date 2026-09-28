@@ -7,7 +7,7 @@ locals {
 # --------------------------------------------------------------------------
 # State encryption key
 #
-# State files contain resource attributes in the clear — IP addresses, ARNs,
+# State files contain resource attributes in the clear - IP addresses, ARNs,
 # and any sensitive output a module happens to expose. This is the most
 # sensitive bucket in the account, so it gets a CMK rather than SSE-S3.
 # --------------------------------------------------------------------------

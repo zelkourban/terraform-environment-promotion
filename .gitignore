@@ -16,5 +16,5 @@ terraform.rc
 .DS_Store
 *.pdf
 
-# Session transcripts — never publish
+# Session transcripts - never publish
 .agent-shell/

@@ -20,7 +20,7 @@ provider "aws" {
       Project     = var.project
       Environment = var.environment
       ManagedBy   = "terraform"
-      Repository  = "acme/infrastructure"
+      Repository  = "zelkourban/terraform-environment-promotion"
     }
   }
 }

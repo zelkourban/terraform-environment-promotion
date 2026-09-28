@@ -1,4 +1,4 @@
-# Infrastructure — Terraform + GitHub Actions
+# Infrastructure - Terraform + GitHub Actions
 
 Infrastructure-as-Code for the AWS footprint, with a controlled promotion path
 `dev → staging → prod`.
@@ -15,7 +15,7 @@ Terraform roles, and one copy of the stack. Promotion between them:
 
 ![Promotion pipeline](docs/pipeline.png)
 
-Both are generated from YAML in `docs/` — see `docs/README.md`.
+Both are generated from YAML in `docs/` - see `docs/README.md`.
 
 ---
 
@@ -63,7 +63,7 @@ A root module per environment gives:
 - an explicit, reviewable diff when an environment drifts from its siblings.
 
 The cost is some duplication in `envs/*/main.tf`. That duplication is
-intentional and small — the logic lives in `modules/`, the roots only wire
+intentional and small - the logic lives in `modules/`, the roots only wire
 values in.
 
 ---
@@ -75,14 +75,14 @@ values in.
 | State | Separate S3 backend key per env: `env/<env>/terraform.tfstate`, in a separate state bucket per account. Locking via S3 conditional writes (`use_lockfile`). |
 | Credentials | GitHub OIDC → one IAM role per environment. No long-lived access keys. The dev role cannot touch prod. |
 | Config | `envs/<env>/terraform.tfvars`, auto-loaded. No shared mutable globals. |
-| Naming | Every resource is prefixed `${var.project}-${var.environment}-…` and tagged via `default_tags`. |
+| Naming | Every resource is prefixed `${var.project}-${var.environment}-...` and tagged via `default_tags`. |
 | Blast radius | Prod lives in its own AWS account; the prod role is only assumable by the `prod` GitHub Environment. |
 
 ---
 
 ## 3. Branching and promotion model
 
-**Trunk-based, with promotion by pipeline stage — not by branch.**
+**Trunk-based, with promotion by pipeline stage - not by branch.**
 
 ```
 feature/*  ──PR──▶  main  ──▶  deploy dev  ──▶  deploy staging  ──▶  deploy prod
@@ -99,7 +99,7 @@ feature/*  ──PR──▶  main  ──▶  deploy dev  ──▶  deploy sta
 
    > In an organisation this would also require 1+ approval and CODEOWNERS
    > review. This repository has a single maintainer, and GitHub does not let
-   > an author approve their own pull request — requiring approvals would
+   > an author approve their own pull request - requiring approvals would
    > deadlock every change. `CODEOWNERS` still records which paths warrant a
    > second reviewer. The deployment gates below are unaffected: GitHub does
    > allow the triggering actor to approve a deployment, so the promotion
@@ -107,18 +107,18 @@ feature/*  ──PR──▶  main  ──▶  deploy dev  ──▶  deploy sta
 4. Merging to `main` triggers `terraform-deploy.yml`, a single run with three
    sequential jobs. Staging waits for dev to succeed; prod waits for staging.
 5. `staging` and `prod` are GitHub Environments with **required reviewers**, so
-   the same commit is promoted forward only after a human approves — the
+   the same commit is promoted forward only after a human approves - the
    artifact promoted is the *commit*, not a re-planned guess.
 
 ### Why not one long-lived branch per environment
 
 `dev`/`staging`/`main` branches are a common pattern, but they drift: a hotfix
 lands on `main` and is never back-merged, and the environments silently diverge.
-Promotion-by-stage keeps one line of history — if it is in prod, it is on
+Promotion-by-stage keeps one line of history - if it is in prod, it is on
 `main`, and everything on `main` has already been through dev and staging.
 
 The trade-off: a merge to `main` that fails in staging leaves `main` ahead of
-prod. That is accepted and made visible — the deploy workflow is the source of
+prod. That is accepted and made visible - the deploy workflow is the source of
 truth for "what is where", and `terraform-drift.yml` catches the rest.
 
 ---
@@ -142,11 +142,11 @@ truth for "what is where", and `terraform-drift.yml` catches the rest.
 - **Prod is absent from the destroy workflow's choice list.** Tearing down
   production means a human with admin credentials, working locally, emptying
   a versioned bucket by hand first. The friction is the point.
-- **Typed confirmation** on the destroy workflow — the environment name must
+- **Typed confirmation** on the destroy workflow - the environment name must
   be entered to match, so a dropdown misclick is not sufficient.
 - **The apply role cannot modify the pipeline.** Its policy carries an
   explicit `Deny` on both Terraform roles and the OIDC provider, and IAM
-  writes are confined to the `acme-<env>-*` prefix — it cannot mint itself a
+  writes are confined to the `acme-<env>-*` prefix - it cannot mint itself a
   more privileged principal.
 - **CODEOWNERS** on `envs/prod/**` and `.github/workflows/**`.
 - **Concurrency groups** per environment so two applies can never race the
@@ -166,12 +166,12 @@ The `secure-bucket` module applies, by default:
   - any request where `aws:SecureTransport` is `false` (TLS only),
   - `PutObject` without `aws:kms` server-side encryption,
   - any principal outside the expected account (`aws:PrincipalAccount`).
-- `BucketOwnerEnforced` object ownership — ACLs disabled entirely.
+- `BucketOwnerEnforced` object ownership - ACLs disabled entirely.
 - Access logging to a separate log bucket.
 - Lifecycle rules to expire noncurrent versions and abort incomplete uploads.
 
 The EC2 instance reaches the bucket through an **instance profile** scoped to
-that bucket's ARN and its KMS key. No credentials on disk, no SSH key — access
+that bucket's ARN and its KMS key. No credentials on disk, no SSH key - access
 is via SSM Session Manager.
 
 ---
@@ -190,15 +190,15 @@ Each step creates what the next one needs to authenticate:
 
 1. **Accounts.** Create dev, staging and prod under AWS Organizations. Each
    gets an `OrganizationAccountAccessRole` assumable from the management
-   account — that is how step 2 reaches a brand-new, empty account.
+   account - that is how step 2 reaches a brand-new, empty account.
 2. **`bootstrap/`**, once per account: state bucket, OIDC provider, plan and
    apply roles, budget alert. Full walkthrough in `bootstrap/README.md`.
 3. **GitHub Environments.** Six of them, role ARNs from step 2's output,
    required reviewers on `staging` and `prod`. Note that environment
    protection rules need a public repo on GitHub Free.
-4. **`envs/*/terraform.tfvars`** — fill in `account_id` from step 2.
+4. **`envs/*/terraform.tfvars`** - fill in `account_id` from step 2.
 
-Steps 1–3 are once per account and rarely touched again. Everything after is
+Steps 1-3 are once per account and rarely touched again. Everything after is
 ordinary PR flow.
 
 ### Locally
@@ -217,7 +217,7 @@ terraform init
 terraform plan
 ```
 
-Local `apply` against `staging` or `prod` is possible but discouraged — the
+Local `apply` against `staging` or `prod` is possible but discouraged - the
 roles are assumable only by a small admin group, and every apply is logged in
 CloudTrail.
 
@@ -239,7 +239,7 @@ never blocked). Setup is described in `bootstrap/README.md`.
 
 ## 7. Assumptions and scope
 
-**Accounts are assumed to exist.** Three of them — one per environment. They
+**Accounts are assumed to exist.** Three of them - one per environment. They
 are created by an AWS Organizations layer that is deliberately not in this
 repository: OUs, member accounts, SCPs and IAM Identity Center belong to a
 landing-zone concern with a different blast radius, a different review group
@@ -259,12 +259,12 @@ false and supplies a private subnet.
 
 **Not implemented**, and where a real deployment would differ:
 
-- No VPC module — a shared network module would be consumed here.
+- No VPC module - a shared network module would be consumed here.
 - `.terraform.lock.hcl` is committed per root, locked to `linux_amd64` only,
   which is what CI runs. A team with macOS developers adds their platforms
   with `terraform providers lock -platform=darwin_arm64`; without it, `init`
   fails on those machines rather than silently resolving a different build.
-- MFA-delete on the prod bucket — requires root credentials and the AWS CLI,
+- MFA-delete on the prod bucket - requires root credentials and the AWS CLI,
   not expressible in Terraform.
 - Single instance rather than a launch template and autoscaling group.
 
@@ -283,12 +283,12 @@ or the `terraform-destroy` workflow for an audited run.
 
 | Layer | Idle cost | Action |
 |---|---|---|
-| `envs/*` — EC2, EBS, S3, KMS | ~$16/mo running | destroy after each test |
-| `bootstrap/` — state bucket, OIDC, roles | pennies | leave standing |
+| `envs/*` - EC2, EBS, S3, KMS | ~$16/mo running | destroy after each test |
+| `bootstrap/` - state bucket, OIDC, roles | pennies | leave standing |
 | Accounts, Organizations | $0 | leave standing |
 
 Everything this stack creates is in state, so `terraform destroy` is
-sufficient — no nuke tooling. The two cases where state is not the whole
+sufficient - no nuke tooling. The two cases where state is not the whole
 picture are a cancelled apply (resource created, state never written) and a
 lost state file. `make orphans` catches the first; the budget alert catches
 what both miss.
@@ -297,6 +297,6 @@ Two residuals that are not quite zero: KMS keys keep billing through their
 deletion window (7 days minimum, ~$0.70 total across three environments), and
 the state bucket holds a few KB.
 
-Closing the accounts is not worth it — empty accounts cost nothing, and
+Closing the accounts is not worth it - empty accounts cost nothing, and
 closing one burns its email address permanently and holds a quota slot for 90
 days.

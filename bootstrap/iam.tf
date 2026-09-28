@@ -20,7 +20,7 @@ locals {
 # GitHub OIDC provider
 #
 # Account-scoped and single-instance per issuer. Short-lived tokens replace
-# long-lived access keys entirely — there is no IAM user in this design.
+# long-lived access keys entirely - there is no IAM user in this design.
 # --------------------------------------------------------------------------
 resource "aws_iam_openid_connect_provider" "github" {
   count = var.create_oidc_provider ? 1 : 0
@@ -40,7 +40,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 # The `sub` condition is the load-bearing control in this whole repository.
 # A workflow job running as the dev environment presents a token with
 # `sub = repo:owner/repo:environment:dev`, which does not match the prod
-# role's condition — so it cannot assume it, no matter what the workflow
+# role's condition - so it cannot assume it, no matter what the workflow
 # file says or who edited it.
 #
 # StringEquals, not StringLike: a wildcard here would let any environment
@@ -95,7 +95,7 @@ data "aws_iam_policy_document" "assume_apply" {
 }
 
 # --------------------------------------------------------------------------
-# Plan role — read-only
+# Plan role - read-only
 #
 # Runs on pull requests, where the code has not been reviewed yet. It can
 # read state and describe resources; it can write nothing. `terraform plan`

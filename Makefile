@@ -29,7 +29,7 @@ plan: check-env
 # change is reviewed, approved and recorded.
 apply: check-env
 	@[ "$(ENV)" = "dev" ] || { \
-		echo "Refusing to apply $(ENV) locally — use the deploy workflow."; exit 1; }
+		echo "Refusing to apply $(ENV) locally - use the deploy workflow."; exit 1; }
 	terraform -chdir=$(DIR) apply -input=false
 
 output: check-env

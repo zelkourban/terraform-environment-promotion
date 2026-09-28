@@ -1,6 +1,6 @@
 name: _terraform-apply
 
-# Reusable apply job. Not triggerable directly — called by terraform-deploy.yml
+# Reusable apply job. Not triggerable directly - called by terraform-deploy.yml
 # so the three promotion stages cannot drift apart.
 
 on:

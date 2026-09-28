@@ -37,7 +37,7 @@ variable "access_log_bucket" {
   default     = null
 }
 
-# Access is granted identity-side only — see README. There is deliberately no
+# Access is granted identity-side only - see README. There is deliberately no
 # reader_role_arns / writer_role_arns input: two places to look for "who can
 # read this bucket" is one too many.
 

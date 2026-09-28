@@ -38,7 +38,7 @@ variable "create_oidc_provider" {
   description = <<-EOT
     Create the GitHub OIDC provider in this account.
 
-    Set false if the account already has one — the provider is account-scoped
+    Set false if the account already has one - the provider is account-scoped
     and a second one for the same issuer is rejected.
   EOT
   type        = bool

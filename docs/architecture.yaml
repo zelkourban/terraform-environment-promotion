@@ -302,7 +302,7 @@ Diagram:
       TargetArrowHead:
         Type: Open
 
-    # Promotion order is shown in docs/pipeline.png — drawing it here as
+    # Promotion order is shown in docs/pipeline.png - drawing it here as
     # account-to-account arrows renders as unreadable stubs between adjacent
     # boxes.
 

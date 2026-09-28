@@ -36,7 +36,7 @@ variable "assign_public_ip" {
     Give the instance a public IP so the SSM agent can reach Systems Manager
     over the internet gateway.
 
-    This is the low-cost path and the security posture is unchanged — the
+    This is the low-cost path and the security posture is unchanged - the
     security group still has no ingress rules at all. A production deployment
     sets this false and provides a private subnet with a NAT gateway or SSM
     interface endpoints.

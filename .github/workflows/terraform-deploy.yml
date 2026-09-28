@@ -6,7 +6,7 @@ name: terraform-deploy
 #  (auto)    (approval)   (approval)
 #
 # Each stage plans and applies in the same job, applying the plan *file* it
-# just produced — so what a reviewer approves is what gets applied.
+# just produced - so what a reviewer approves is what gets applied.
 
 on:
   push:
