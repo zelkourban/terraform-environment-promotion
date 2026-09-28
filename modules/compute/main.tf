@@ -76,12 +76,19 @@ resource "aws_iam_instance_profile" "this" {
 }
 
 resource "aws_security_group" "this" {
-  name        = "${var.name}-sg"
+  name_prefix = "${var.name}-sg-"
   description = "Egress-only security group for ${var.name}"
   vpc_id      = var.vpc_id
   tags        = var.tags
 
   # No ingress rules by design - SSM initiates outbound connections.
+
+  # A security group cannot be deleted while an instance still references it,
+  # so any change forcing replacement deadlocks without this. name_prefix
+  # keeps the two from colliding on name during the swap.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_vpc_security_group_egress_rule" "https" {
