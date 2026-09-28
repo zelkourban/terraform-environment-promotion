@@ -1,0 +1,223 @@
+Diagram:
+  DefinitionFiles:
+    - Type: URL
+      Url: "https://raw.githubusercontent.com/awslabs/diagram-as-code/main/definitions/definition-for-aws-icons-light.yaml"
+
+  # Titles are kept short on purpose: leaf resources lay out on a fixed
+  # margin and label width is not accounted for, so long titles overrun
+  # their neighbours.
+
+  Resources:
+    Canvas:
+      Type: AWS::Diagram::Canvas
+      Direction: vertical
+      Children:
+        - PRLane
+        - DeployLane
+
+    # ----------------------------------------------------------------
+    # Pull request: plan only, read-only credentials, no gate
+    # ----------------------------------------------------------------
+    PRLane:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - Developer
+        - FeatureBranch
+        - Checks
+        - PlanFanout
+
+    Developer:
+      Type: AWS::Diagram::Resource
+      Preset: User
+      Title: "developer"
+
+    FeatureBranch:
+      Type: AWS::Diagram::Resource
+      Preset: "Git repository"
+      Title: "PR to main"
+
+    Checks:
+      Type: AWS::Diagram::Resource
+      Preset: "Pipeline"
+      Title: "checks + plan"
+
+    PlanFanout:
+      Type: AWS::Diagram::VerticalStack
+      Children:
+        - PlanDev
+        - PlanStaging
+        - PlanProd
+
+    PlanDev:
+      Type: AWS::IAM::Role
+      Title: "dev plan RO"
+
+    PlanStaging:
+      Type: AWS::IAM::Role
+      Title: "stg plan RO"
+
+    PlanProd:
+      Type: AWS::IAM::Role
+      Title: "prod plan RO"
+
+    # ----------------------------------------------------------------
+    # Merge to main: sequential promotion, approval gated
+    # ----------------------------------------------------------------
+    DeployLane:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - MainBranch
+        - DevStage
+        - StagingGate
+        - StagingStage
+        - ProdGate
+        - ProdStage
+
+    MainBranch:
+      Type: AWS::Diagram::Resource
+      Preset: "Git repository"
+      Title: "main"
+
+    DevStage:
+      Type: AWS::Organizations::Account
+      Direction: vertical
+      Title: "dev"
+      Children:
+        - DevInner
+
+    DevInner:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - DevApply
+        - DevState
+
+    DevApply:
+      Type: AWS::IAM::Role
+      Title: "apply role"
+
+    DevState:
+      Type: AWS::S3::Bucket
+      Title: "tfstate"
+
+    StagingGate:
+      Type: AWS::Diagram::Resource
+      Preset: User
+      Title: "approval"
+
+    StagingStage:
+      Type: AWS::Organizations::Account
+      Direction: vertical
+      Title: "staging"
+      Children:
+        - StagingInner
+
+    StagingInner:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - StagingApply
+        - StagingState
+
+    StagingApply:
+      Type: AWS::IAM::Role
+      Title: "apply role"
+
+    StagingState:
+      Type: AWS::S3::Bucket
+      Title: "tfstate"
+
+    ProdGate:
+      Type: AWS::Diagram::Resource
+      Preset: User
+      Title: "approval"
+
+    ProdStage:
+      Type: AWS::Organizations::Account
+      Direction: vertical
+      Title: "prod"
+      Children:
+        - ProdInner
+
+    ProdInner:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - ProdApply
+        - ProdState
+
+    ProdApply:
+      Type: AWS::IAM::Role
+      Title: "apply role"
+
+    ProdState:
+      Type: AWS::S3::Bucket
+      Title: "tfstate"
+
+  Links:
+    - Source: Developer
+      SourcePosition: E
+      Target: FeatureBranch
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: FeatureBranch
+      SourcePosition: E
+      Target: Checks
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: Checks
+      SourcePosition: E
+      Target: PlanDev
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: Checks
+      SourcePosition: E
+      Target: PlanStaging
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: Checks
+      SourcePosition: E
+      Target: PlanProd
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: MainBranch
+      SourcePosition: E
+      Target: DevStage
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: DevStage
+      SourcePosition: E
+      Target: StagingGate
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: StagingGate
+      SourcePosition: E
+      Target: StagingStage
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: StagingStage
+      SourcePosition: E
+      Target: ProdGate
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+
+    - Source: ProdGate
+      SourcePosition: E
+      Target: ProdStage
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open

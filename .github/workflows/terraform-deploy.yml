@@ -1,0 +1,61 @@
+name: terraform-deploy
+
+# Promotion pipeline: dev (auto), staging (approval), prod (approval).
+# Each stage applies the plan file it just produced, so what a reviewer
+# approves is what gets applied.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "envs/**"
+      - "modules/**"
+      - ".github/workflows/terraform-deploy.yml"
+
+  # Escape hatch for a transient failure mid-chain. Prod stays in the list -
+  # the alternative is a local apply with no record. Gates still apply.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to apply
+        required: true
+        type: choice
+        options: [dev, staging, prod]
+      reason:
+        description: Why this is being applied out of band
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  dev:
+    if: github.event_name == 'push' || inputs.environment == 'dev'
+    uses: ./.github/workflows/_terraform-apply.yml
+    with:
+      environment: dev
+    secrets: inherit
+
+  staging:
+    needs: [dev]
+    if: |
+      always() &&
+      ((github.event_name == 'push' && needs.dev.result == 'success') ||
+       inputs.environment == 'staging')
+    uses: ./.github/workflows/_terraform-apply.yml
+    with:
+      environment: staging
+    secrets: inherit
+
+  prod:
+    needs: [staging]
+    if: |
+      always() &&
+      ((github.event_name == 'push' && needs.staging.result == 'success') ||
+       inputs.environment == 'prod')
+    uses: ./.github/workflows/_terraform-apply.yml
+    with:
+      environment: prod
+    secrets: inherit
