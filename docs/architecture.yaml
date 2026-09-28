@@ -108,6 +108,7 @@ Diagram:
     DevSubnet:
       Type: AWS::EC2::Subnet
       Preset: PublicSubnet
+      Title: "public"
       Children:
         - DevInstance
 
@@ -176,6 +177,7 @@ Diagram:
     StagingSubnet:
       Type: AWS::EC2::Subnet
       Preset: PublicSubnet
+      Title: "public"
       Children:
         - StagingInstance
 
@@ -244,6 +246,7 @@ Diagram:
     ProdSubnet:
       Type: AWS::EC2::Subnet
       Preset: PrivateSubnet
+      Title: "private"
       Children:
         - ProdInstance
 

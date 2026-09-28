@@ -26,9 +26,12 @@ dev applies automatically, staging and prod each wait on a required reviewer.
 
 ## Layout notes
 
-`awsdac` lays leaf resources out on a fixed margin and does not measure label
-width, so long titles overrun their neighbours. Keep them to roughly fifteen
-characters; put the detail here instead.
+`awsdac` does not measure label width when sizing anything. Leaf resources lay
+out on a fixed margin, so long titles overrun their neighbours; group boxes are
+sized to their children, so a group whose label is wider than its contents
+spills past its own border. Both are fixed by shortening the title - hence
+`public` rather than the preset's `Public Subnet`, over a box holding one icon.
+Put the detail here instead.
 
 Group containers carry their own icon - `AWS::Diagram::Cloud` stamps an AWS
 logo on anything it wraps, which is wrong for a lane spanning GitHub and AWS.
