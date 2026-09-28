@@ -109,11 +109,22 @@ Diagram:
       Type: AWS::EC2::Subnet
       Preset: PublicSubnet
       Children:
+        - DevCompute
+
+    DevCompute:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
         - DevInstance
+        - DevVolume
 
     DevInstance:
       Type: AWS::EC2::Instance
       Title: "t3.micro"
+
+    DevVolume:
+      Type: AWS::Diagram::Resource
+      Preset: "Volume gp3"
+      Title: "gp3 encrypted"
 
     DevData:
       Type: AWS::Diagram::HorizontalStack
@@ -177,11 +188,22 @@ Diagram:
       Type: AWS::EC2::Subnet
       Preset: PublicSubnet
       Children:
+        - StagingCompute
+
+    StagingCompute:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
         - StagingInstance
+        - StagingVolume
 
     StagingInstance:
       Type: AWS::EC2::Instance
       Title: "t3.small"
+
+    StagingVolume:
+      Type: AWS::Diagram::Resource
+      Preset: "Volume gp3"
+      Title: "gp3 encrypted"
 
     StagingData:
       Type: AWS::Diagram::HorizontalStack
@@ -245,11 +267,22 @@ Diagram:
       Type: AWS::EC2::Subnet
       Preset: PrivateSubnet
       Children:
+        - ProdCompute
+
+    ProdCompute:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
         - ProdInstance
+        - ProdVolume
 
     ProdInstance:
       Type: AWS::EC2::Instance
       Title: "t3.small"
+
+    ProdVolume:
+      Type: AWS::Diagram::Resource
+      Preset: "Volume gp3"
+      Title: "gp3 encrypted"
 
     ProdData:
       Type: AWS::Diagram::HorizontalStack
@@ -266,14 +299,16 @@ Diagram:
       Title: "CMK"
 
   Links:
-    - Source: Developer
+    - Type: orthogonal
+      Source: Developer
       SourcePosition: E
       Target: Repository
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: Repository
+    - Type: orthogonal
+      Source: Repository
       SourcePosition: E
       Target: Pipeline
       TargetPosition: W
@@ -281,21 +316,24 @@ Diagram:
         Type: Open
 
     # OIDC: one federated assume-role per environment, sub-pinned.
-    - Source: Pipeline
+    - Type: orthogonal
+      Source: Pipeline
       SourcePosition: S
       Target: DevApplyRole
       TargetPosition: N
       TargetArrowHead:
         Type: Open
 
-    - Source: Pipeline
+    - Type: orthogonal
+      Source: Pipeline
       SourcePosition: S
       Target: StagingApplyRole
       TargetPosition: N
       TargetArrowHead:
         Type: Open
 
-    - Source: Pipeline
+    - Type: orthogonal
+      Source: Pipeline
       SourcePosition: S
       Target: ProdApplyRole
       TargetPosition: N
@@ -307,21 +345,24 @@ Diagram:
     # boxes.
 
     # Instance reaches its bucket through the instance profile only.
-    - Source: DevInstance
+    - Type: orthogonal
+      Source: DevInstance
       SourcePosition: S
       Target: DevBucket
       TargetPosition: N
       TargetArrowHead:
         Type: Open
 
-    - Source: StagingInstance
+    - Type: orthogonal
+      Source: StagingInstance
       SourcePosition: S
       Target: StagingBucket
       TargetPosition: N
       TargetArrowHead:
         Type: Open
 
-    - Source: ProdInstance
+    - Type: orthogonal
+      Source: ProdInstance
       SourcePosition: S
       Target: ProdBucket
       TargetPosition: N

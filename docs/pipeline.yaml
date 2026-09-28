@@ -152,70 +152,80 @@ Diagram:
       Title: "tfstate"
 
   Links:
-    - Source: Developer
+    - Type: orthogonal
+      Source: Developer
       SourcePosition: E
       Target: FeatureBranch
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: FeatureBranch
+    - Type: orthogonal
+      Source: FeatureBranch
       SourcePosition: E
       Target: Checks
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: Checks
+    - Type: orthogonal
+      Source: Checks
       SourcePosition: E
       Target: PlanDev
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: Checks
+    - Type: orthogonal
+      Source: Checks
       SourcePosition: E
       Target: PlanStaging
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: Checks
+    - Type: orthogonal
+      Source: Checks
       SourcePosition: E
       Target: PlanProd
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: MainBranch
+    - Type: orthogonal
+      Source: MainBranch
       SourcePosition: E
       Target: DevStage
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: DevStage
+    - Type: orthogonal
+      Source: DevStage
       SourcePosition: E
       Target: StagingGate
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: StagingGate
+    - Type: orthogonal
+      Source: StagingGate
       SourcePosition: E
       Target: StagingStage
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: StagingStage
+    - Type: orthogonal
+      Source: StagingStage
       SourcePosition: E
       Target: ProdGate
       TargetPosition: W
       TargetArrowHead:
         Type: Open
 
-    - Source: ProdGate
+    - Type: orthogonal
+      Source: ProdGate
       SourcePosition: E
       Target: ProdStage
       TargetPosition: W

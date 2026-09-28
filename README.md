@@ -85,10 +85,29 @@ values in.
 
 **Trunk-based, with promotion by pipeline stage - not by branch.**
 
-```
-feature/*  ──PR──▶  main  ──▶  deploy dev  ──▶  deploy staging  ──▶  deploy prod
-                     │          (auto)          (approval)         (approval)
-                     └── plan posted on the PR
+```mermaid
+flowchart LR
+    feature["feature/*"]
+    plan["plan dev, staging, prod<br/>commented on the PR"]
+    main["main"]
+    dev["deploy dev"]
+    review1["required reviewer"]
+    staging["deploy staging"]
+    review2["required reviewer"]
+    prod["deploy prod"]
+
+    feature -->|pull request| plan
+    plan -->|merge| main
+    main --> dev
+    dev --> review1
+    review1 --> staging
+    staging --> review2
+    review2 --> prod
+
+    classDef gate fill:#fff3cd,stroke:#b8860b,color:#000
+    classDef auto fill:#e7f3ff,stroke:#1f6feb,color:#000
+    class review1,review2 gate
+    class dev,staging,prod auto
 ```
 
 1. Work happens on `feature/*` (or `fix/*`) branches.
