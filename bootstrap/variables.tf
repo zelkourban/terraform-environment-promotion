@@ -34,6 +34,16 @@ variable "github_repository" {
   }
 }
 
+variable "github_owner_id" {
+  description = "Numeric GitHub owner ID, from `gh api repos/<owner>/<repo> --jq .owner.id`."
+  type        = string
+}
+
+variable "github_repository_id" {
+  description = "Numeric GitHub repository ID, from `gh api repos/<owner>/<repo> --jq .id`."
+  type        = string
+}
+
 variable "create_oidc_provider" {
   description = <<-EOT
     Create the GitHub OIDC provider in this account.

@@ -7,11 +7,26 @@ locals {
     "arn:${data.aws_partition.current.partition}:iam::${var.account_id}:oidc-provider/${local.oidc_issuer}"
   )
 
+  # GitHub issues an immutable subject claim that embeds the numeric owner and
+  # repository IDs alongside their names:
+  #
+  #   repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<env>
+  #
+  # Matching the IDs rather than only the names is the stronger form: renaming
+  # the repository, or deleting and recreating one with the same name, does not
+  # silently transfer trust. The trade-off is that a genuine rename requires
+  # re-applying this layer.
+  repo_subject = format(
+    "repo:%s@%s/%s@%s",
+    split("/", var.github_repository)[0], var.github_owner_id,
+    split("/", var.github_repository)[1], var.github_repository_id,
+  )
+
   # The two GitHub Environments this account's roles are bound to. The apply
   # role is reachable only from `<env>`, which carries the required reviewers;
   # the plan role only from `<env>-plan`, which deliberately has none.
-  apply_subject = "repo:${var.github_repository}:environment:${var.environment}"
-  plan_subject  = "repo:${var.github_repository}:environment:${var.environment}-plan"
+  apply_subject = "${local.repo_subject}:environment:${var.environment}"
+  plan_subject  = "${local.repo_subject}:environment:${var.environment}-plan"
 
   state_key_arn = "${aws_s3_bucket.state.arn}/env/${var.environment}/terraform.tfstate"
 }
@@ -43,10 +58,9 @@ resource "aws_iam_openid_connect_provider" "github" {
 # Trust policies
 #
 # The `sub` condition is the load-bearing control in this whole repository.
-# A workflow job running as the dev environment presents a token with
-# `sub = repo:owner/repo:environment:dev`, which does not match the prod
-# role's condition - so it cannot assume it, no matter what the workflow
-# file says or who edited it.
+# A workflow job running as the dev environment presents a token whose `sub`
+# ends `:environment:dev`, which does not match the prod role's condition - so
+# it cannot assume it, no matter what the workflow file says or who edited it.
 #
 # StringEquals, not StringLike: a wildcard here would let any environment
 # (or any branch, on a misconfigured condition) assume the role.
