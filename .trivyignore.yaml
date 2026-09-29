@@ -1,0 +1,31 @@
+# Accepted findings. Anything not listed here fails the build.
+# Each entry states why the risk is taken, so the next reviewer can disagree.
+
+misconfigurations:
+  - id: AVD-AWS-0104
+    paths:
+      - "modules/compute/main.tf"
+    statement: >-
+      Egress is 0.0.0.0/0 on port 443 only. The instance has no inbound rules
+      and is administered through SSM Session Manager, whose endpoints are
+      public and have no managed prefix list to narrow to. A private-subnet
+      deployment scopes this to the SSM interface endpoint security group;
+      see README section 7 for why that is not the default here.
+
+  - id: AVD-AWS-0345
+    paths:
+      - "bootstrap/iam.tf"
+    statement: >-
+      s3:* in the Terraform apply role is confined to buckets matching the
+      project and environment prefix. The role has to create, configure and
+      delete those buckets, so the action set is broad by necessity while the
+      resource set is not.
+
+  - id: AVD-AWS-0089
+    paths:
+      - "modules/secure-bucket/main.tf"
+      - "bootstrap/state.tf"
+    statement: >-
+      Server access logging needs a second bucket per environment, which this
+      stack does not create. The module exposes an access_log_bucket input for
+      callers that have one. Listed in README section 7.

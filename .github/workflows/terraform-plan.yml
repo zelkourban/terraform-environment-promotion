@@ -38,10 +38,17 @@ jobs:
         uses: terraform-linters/setup-tflint@v4
       - run: tflint --recursive
 
-      - name: tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          soft_fail: false
+      - uses: aquasecurity/setup-trivy@v0.3.1
+
+      # Run the binary rather than a scan action, so the step's exit code is
+      # bash's with nothing in between to swallow it. Accepted findings and
+      # the reasons for accepting them live in .trivyignore.yaml.
+      - name: trivy config
+        run: |
+          trivy config . \
+            --ignorefile .trivyignore.yaml \
+            --severity HIGH,CRITICAL \
+            --exit-code 1
 
   changes:
     runs-on: ubuntu-latest
