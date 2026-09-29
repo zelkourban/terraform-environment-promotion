@@ -35,7 +35,7 @@ Both are generated from YAML in `docs/` - see `docs/README.md`.
 │
 ├── .github/
 │   ├── workflows/
-│   │   ├── terraform-plan.yml      # PR: fmt, validate, lint, security scan, plan
+│   │   ├── terraform-plan.yml      # PR: fmt, validate, tflint, trivy, plan
 │   │   ├── terraform-deploy.yml    # main: orchestrates dev → staging → prod
 │   │   ├── _terraform-apply.yml    # reusable apply job, called per stage
 │   │   ├── terraform-destroy.yml   # manual, dev/staging only, typed confirmation
@@ -46,6 +46,7 @@ Both are generated from YAML in `docs/` - see `docs/README.md`.
 ├── bootstrap/                  # One-time per account: state bucket, OIDC provider, roles
 ├── docs/                       # Diagram-as-code sources and rendered PNGs
 ├── .tflint.hcl
+├── .trivyignore.yaml           # accepted findings, each with a stated reason
 └── Makefile                    # Local convenience wrappers
 ```
 
@@ -112,7 +113,7 @@ flowchart LR
 
 1. Work happens on `feature/*` (or `fix/*`) branches.
 2. A PR to `main` runs `terraform-plan.yml`: format check, validate, `tflint`,
-   `tfsec`, then `terraform plan` for **every** environment the PR touches.
+   `trivy config`, then `terraform plan` for **every** environment the PR touches.
    The plans are posted back as a PR comment.
 3. `main` is protected: PR required, plan checks must pass, linear history, no
    force pushes.
@@ -263,7 +264,7 @@ CloudTrail.
 
 | Trigger | Workflow | Effect |
 |---|---|---|
-| PR to `main` | `terraform-plan.yml` | fmt/validate/lint/scan + plan per env, commented on the PR |
+| PR to `main` | `terraform-plan.yml` | fmt, validate, `tflint`, `trivy config`, plan per env commented on the PR |
 | Merge to `main` | `terraform-deploy.yml` | apply dev → (approval) staging → (approval) prod |
 | Manual dispatch | `terraform-deploy.yml` | apply one environment out of band; reason required and recorded |
 | Manual dispatch | `terraform-destroy.yml` | tear down dev or staging; typed confirmation required |
